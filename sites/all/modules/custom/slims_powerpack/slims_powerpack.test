@@ -1,0 +1,28 @@
+<?php
+class Slims_powerpackTestCase extends DrupalWebTestCase {
+
+  public function setUp() {
+    parent::setUp();
+  }
+
+  public function getInfo() {
+    return array(
+      'name' => 'SLiMS Powerpack module functionality',
+      'description' => 'Functional Testing Unit for the SLiMS Powerpack module.',
+      'group' => 'SLiMS Powerpack',
+    );
+  }
+
+  public function testBlockInfo() {
+    $info = module_invoke('slims_powerpack', 'block_info');
+    $this->assertEqual(1, count($info), t('Module defines a block.'));
+    $this->assertTrue(isset($info['last_update_collection']), t('Collection updated list exists.'));
+  }
+
+  public function testBlockView() {
+    $data = module_invoke('slims_powerpack', 'block_view', 'last_update_collection');
+    $this->assertTrue(is_array($data), t('Block returns renderable array.'));
+    $this->assertEqual(t('Koleksi Terbaru'), $data['subject'], t('Subject is set'));
+  }
+
+}

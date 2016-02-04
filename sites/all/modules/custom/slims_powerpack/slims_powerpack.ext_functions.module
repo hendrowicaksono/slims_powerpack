@@ -1,0 +1,202 @@
+<?php
+
+function get_last_update_collection () {
+  $base_url = variable_get('slims_url', 'http://localhost/demosetneg/kemdikbud/');
+  $url = $base_url.'index.php?resultXML=true&search=search&keywords=';
+  $data = simplexml_load_file($url);
+  #http://www.w3.org/1999/xlink
+  #$data_arr = json_decode($data, TRUE);
+  $data_arr = $data;
+  $res = array ();
+  $i = 0;
+  foreach ($data_arr->mods as $k_01 => $v_01) {
+    #$_bid = explode ('=', $v_01['@id']);
+    #$res[$k_01]['url'] = 'slims/detail/'.end ($_bid);
+    #$res[$i]['url'] = 'index.php?q=slims/detail/'.$v_01->attributes()->ID;
+    $_tmp_url = 'slims/detail/'.$v_01->attributes()->ID;
+    $res[$i]['url'] = l('Judule disini', 'slims/detail');
+    $res[$i]['title'] = $v_01->titleInfo->title;
+    $i++;
+  }
+  return $res;
+}
+
+function get_search_form () {
+  /**
+  $base_url = variable_get('slims_url', 'http://localhost/demosetneg/kemdikbud/');
+  $url = $base_url.'index.php?resultXML=true&search=search&keywords=';
+  $data = simplexml_load_file($url);
+  #http://www.w3.org/1999/xlink
+  #$data_arr = json_decode($data, TRUE);
+  $data_arr = $data;
+  $res = array ();
+  $i = 0;
+  foreach ($data_arr->mods as $k_01 => $v_01) {
+    #$_bid = explode ('=', $v_01['@id']);
+    #$res[$k_01]['url'] = 'slims/detail/'.end ($_bid);
+    $res[$i]['url'] = 'slims/detail/'.$v_01->attributes()->ID;
+    $res[$i]['title'] = $v_01->titleInfo->title;
+    $i++;
+  }
+  **/
+  $res = '<h1>Drupal Form disini</h1>';
+  return $res;
+}
+
+
+function slims_show_record ($biblio_id)
+{
+  $base_url = variable_get('slims_url', 'http://localhost/pusjatan/slims7_cendana/');
+  #$url = $base_url.'index.php?JSONLD=true&p=show_detail&id='.$biblio_id.'&keywords=';
+  $url = $base_url.'index.php?p=show_detail&inXML=true&id='.$biblio_id;
+  #$data = file_get_contents($url);
+  $data = simplexml_load_file($url);
+  $ns = $data->getNamespaces(true);
+  #$data_arr = json_decode($data, TRUE);
+  $data_arr = $data;
+  /**
+  var_dump($data_arr);
+  echo '<hr />';
+  var_dump($ns);
+  echo '<hr />';
+  echo $ns['slims'];
+  echo '<hr />';
+  **/
+  $res = '';
+  $res .= '<table>';
+  if (!empty($data_arr->mods->titleInfo->title)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Title</strong></td>';
+    $res .= '<td>'.$data_arr->mods->titleInfo->title.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->name)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Authors</strong></td>';
+    $res .= '<td>';
+    $i = 0;
+    foreach ($data_arr->mods->name as $key => $value) {
+      $res .= $data_arr->mods->name[$i]->namePart.'; ';
+      $i++;
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->edition)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Edition</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->edition.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->publisher)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Publisher</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->publisher.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->dateIssued)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Published Year</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->dateIssued.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->language->languageTerm[1])) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Language</strong></td>';
+    $res .= '<td>'.$data_arr->mods->language->languageTerm[1].'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->location->shelfLocator)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Nomor Panggil</strong></td>';
+    $res .= '<td>'.$data_arr->mods->location->shelfLocator.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->physicalDescription->form)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>GMD</strong></td>';
+    $res .= '<td>'.$data_arr->mods->physicalDescription->form.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->physicalDescription->extent)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Deskripsi Fisik</strong></td>';
+    $res .= '<td>'.$data_arr->mods->physicalDescription->extent.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->relatedItem->titleInfo->title)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Judul Seri</strong></td>';
+    $res .= '<td>'.$data_arr->mods->relatedItem->titleInfo->title.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->note)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Abstrak</strong></td>';
+    $res .= '<td>'.$data_arr->mods->note.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (array($data_arr->mods->subject)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Subyek</strong></td>';
+    $res .= '<td>';
+    foreach ($data_arr->mods->subject as $key => $v_subject) {
+      #$res .= $data_arr->mods->subject[$key]->topic;
+      #$res .= $key;
+      #echo '<hr />';
+      #var_dump($v_subject);
+      $res .= $v_subject->topic.'; ';
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->classification)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Klasifikasi</strong></td>';
+    $res .= '<td>'.$data_arr->mods->classification.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->identifier)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>ISBN / ISSN</strong></td>';
+    $res .= '<td>'.$data_arr->mods->identifier.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (array($data_arr->mods->name)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Authors</strong></td>';
+    $res .= '<td>';
+    foreach ($data_arr->mods->name as $key => $v_name) {
+      $res .= $v_name->namePart.'; ';
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+
+
+
+  if (!empty($data_arr['image'])) {
+    $res .= '<tr>';
+    $_image = explode('/', $data_arr['image']);
+    $_image_url = $base_url.'lib/minigalnano/createthumb.php?filename=../../images/docs/'.end($_image).'&width=400';
+    $res .= '<td colspan="2"><img src="'.$_image_url.'" /></td>';
+    $res .= '</tr>';
+  }
+  $res .= '</table>';
+  return $res;
+}

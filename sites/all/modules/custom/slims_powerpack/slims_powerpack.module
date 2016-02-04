@@ -1,0 +1,455 @@
+<?php
+if (isset($_GET['slims'])) {
+  $sarg = explode('/', $_GET['slims']);
+}
+
+require_once 'slims_powerpack.ext_functions.module';
+
+/**
+ * Implements hook_block_info().
+ */
+function slims_powerpack_block_info() {
+  $blocks['last_update_collection'] = array(
+    'info' => t('Last Update Collection'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  $blocks['slims_search_form'] = array(
+    'info' => t('SLiMS Search Form'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function slims_powerpack_block_view($delta = '') {
+  $result = array ();
+
+  switch ($delta) {
+
+    case 'last_update_collection':
+      $block['subject'] = t('Koleksi Terbaru');
+      #$block['content'] = t('Hmmm sudah kuduga');
+      $block['content'] = getLastUpdateCollection();
+      #$list = getLastUpdateCollection();
+      #$block['content'] = theme('item_list', array('items' => $list));
+      return $block;
+    break;
+
+    case 'slims_search_form':
+      if (user_access('access content')) {
+        $block['subject'] = t('SLiMS Search Form');
+        $result = get_search_form ();
+        /**
+        $sc = '5'; #SC = showed collection
+        $sc = variable_get('current_collection_max', 5);
+        $counter = '0';
+        if (!empty($result)) {
+          foreach ($result as $k_art => $v_art) {
+            if ($counter < $sc) {
+              $items[] = array(
+                'data' => l($v_art['title'], $v_art['url']),
+              );
+              $counter++;
+            }
+          }
+          $block['content'] = theme('item_list', array('items' => $items));
+        } else {
+          $block['content'] = t('Belum ada informasi koleksi terbaru.');
+        }
+        return $block;
+      }
+      **/
+      break;
+
+  }
+
+}
+  }
+
+/**
+ * Implements hook_menu().
+ */
+function slims_powerpack_menu() {
+  $items = array();
+  $items['admin/config/content/slims_powerpack'] = array(
+    'title' => 'SLiMS Powerpack Admin Menu',
+    'description' => 'Main Configuration for SLiMS Powerpack',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('slims_powerpack_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['slims/detail'] = array(
+    'title' => 'SLiMS Record Detail',
+    'description' => 'SLiMS Record Detail',
+    'page callback' => 'slims_show_record_2',
+    'access callback' => TRUE,
+    #'page arguments' => array('slims_powerpack_form'),
+    #'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['slims/search'] = array(
+    'title' => 'SLiMS Search',
+    'description' => 'SLiMS Search',
+    'page callback' => 'slims_search_form',
+    'access callback' => TRUE,
+    #'page arguments' => array('slims_powerpack_form'),
+    #'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+function slims_show_record_2 ($biblio_id)
+{
+  #return 'My Menu URL was hit: '.$biblio_id;
+  $base_url = variable_get('slims_url', 'http://localhost/pusjatan/slims7_cendana/');
+  #$url = $base_url.'index.php?JSONLD=true&p=show_detail&id='.$biblio_id.'&keywords=';
+  $url = $base_url.'index.php?p=show_detail&inXML=true&id='.$biblio_id;
+
+  #return $url;
+  #$data = file_get_contents($url);
+  #$data = simplexml_load_file($url);
+  $data = simplexml_load_file($url, 'SimpleXMLElement',LIBXML_NOCDATA);
+  $ns = $data->getNamespaces(true);
+  $data_arr = $data;
+
+  if (!empty($data_arr->mods->children($ns["slims"]))) {
+    $slims = $data_arr->mods->children($ns["slims"]);
+  } else {
+    $slims = FALSE;
+  }
+  #echo ($slims->image);
+
+
+  $res = '';
+
+  #echo $d_arr->mods->children('slims', TRUE)->image;
+
+
+  #die();
+
+  $res .= '<table class="table">';
+  if (!empty($data_arr->mods->titleInfo->title)) {
+    #$res .= '<tr>';
+    #$res .= '<td><strong>Title</strong></td>';
+    #$res .= '<td>'.$data_arr->mods->titleInfo->title.'</td>';
+    #$res .= '</tr>';
+
+    $res .= '<tr>';
+    $res .= '<td>';
+    if (empty($slims->image)) {
+      $res .= '<img src="'.$base_url.'images/default/image.png" />';
+    } else {
+      #$res .= $slims->image;
+      $res .= '<img src="'.$base_url.'lib/phpthumb/phpThumb.php?src=../../images/docs/'.$slims->image.'&w=100" />';
+    }
+    $res .= '</td>';
+    $res .= '<td><h3>'.$data_arr->mods->titleInfo->title.'<h3></td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->name)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Authors</strong></td>';
+    $res .= '<td>';
+    $i = 0;
+    foreach ($data_arr->mods->name as $key => $value) {
+      $res .= $data_arr->mods->name[$i]->namePart.'; ';
+      $i++;
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->edition)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Edition</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->edition.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->publisher)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Publisher</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->publisher.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->originInfo->dateIssued)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Published Year</strong></td>';
+    $res .= '<td>'.$data_arr->mods->originInfo->dateIssued.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->language->languageTerm[1])) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Language</strong></td>';
+    $res .= '<td>'.$data_arr->mods->language->languageTerm[1].'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->location->shelfLocator)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Nomor Panggil</strong></td>';
+    $res .= '<td>'.$data_arr->mods->location->shelfLocator.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->physicalDescription->form)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>GMD</strong></td>';
+    $res .= '<td>'.$data_arr->mods->physicalDescription->form.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->physicalDescription->extent)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Deskripsi Fisik</strong></td>';
+    $res .= '<td>'.$data_arr->mods->physicalDescription->extent.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->relatedItem->titleInfo->title)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Judul Seri</strong></td>';
+    $res .= '<td>'.$data_arr->mods->relatedItem->titleInfo->title.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->note)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Abstrak</strong></td>';
+    $res .= '<td>'.$data_arr->mods->note.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (array($data_arr->mods->subject)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Subyek</strong></td>';
+    $res .= '<td>';
+    foreach ($data_arr->mods->subject as $key => $v_subject) {
+      #$res .= $data_arr->mods->subject[$key]->topic;
+      #$res .= $key;
+      #echo '<hr />';
+      #var_dump($v_subject);
+      $res .= $v_subject->topic.'; ';
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->classification)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Klasifikasi</strong></td>';
+    $res .= '<td>'.$data_arr->mods->classification.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (!empty($data_arr->mods->identifier)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>ISBN / ISSN</strong></td>';
+    $res .= '<td>'.$data_arr->mods->identifier.'</td>';
+    $res .= '</tr>';
+  }
+
+  if (array($data_arr->mods->name)) {
+    $res .= '<tr>';
+    $res .= '<td><strong>Authors</strong></td>';
+    $res .= '<td>';
+    foreach ($data_arr->mods->name as $key => $v_name) {
+      $res .= $v_name->namePart.'; ';
+    }
+    $res .= '</td>';
+    $res .= '</tr>';
+  }
+
+
+
+
+
+
+
+  $res .= '</table>';
+  return $res;
+
+}
+
+function slims_search_form ()
+{
+  $res = '<ul data-tabs class="tabs">';
+  $res .= '    <li><a data-tab href="#taba">Simple Search</a></li>';
+  $res .= '    <li><a data-tab href="#tabb">Advanced Search</a></li>';
+  #$res .= '    <li><a data-tab href="#tabc">Seasons</a></li>';
+  $res .= '</ul>';
+  $res .= '<hr />';
+
+  $res .= '<div data-tabs-content>';
+  ##################### START SIMPLE SEARCH ########################
+  if ( (!isset($_GET['page'])) OR ($_GET['page'] == '') ) {
+    $page = '1';
+  } else {
+    $page = $_GET['page'];
+  }
+  if (!isset($_GET['keywords'])) {
+    $keywords = '';
+  } else {
+    $keywords = $_GET['keywords'];
+  }
+  $res .= '    <div data-tabs-pane class="tabs-pane active" id="taba">';
+  $res .= '   <form action="'.$_SERVER['PHP_SELF'].'" method="get" accept-charset="UTF-8"><div>  <input type="hidden" name="q" value="slims/search" />';
+  $res .= '<input type="hidden" name="searchtype" value="simple" />';
+  $res .= '<div class="views-exposed-form">';
+  $res .= '  <div class="views-exposed-widgets clearfix">';
+  $res .= '          <div id="edit-keywords-wrapper" class="views-exposed-widget views-widget-filter-title">';
+  $res .= '                  <label for="edit-keywords">';
+  $res .= '            Keywords          </label>';
+  $res .= '                        <div class="views-widget">';
+  $res .= '          <div class="form-item form-type-textfield form-item-keywords">';
+  $res .= ' <input type="text" id="edit-keywords" name="keywords" value="'.$keywords.'" size="30" maxlength="128" class="form-text" />';
+  $res .= '</div>';
+  $res .= '        </div>';
+  $res .= '              </div>';
+  $res .= '                    <div class="views-exposed-widget views-submit-button">';
+  $res .= '      <input type="submit" id="edit-submit-slims-simple-search" name="" value="Search" class="form-submit" />    </div>';
+  $res .= '      </div>';
+  $res .= '</div>';
+  $res .= '</div></form>';
+  #if (!isset($_GET['searchtype'])) {
+  #  $res .= '<div>default browsing disini</div>';
+  #}
+
+  $base_url = variable_get('slims_url');
+  $xml_url = $base_url.'index.php?resultXML=true&search=search&keywords='.$keywords.'&page='.$page;
+  $data = simplexml_load_file($xml_url, 'SimpleXMLElement',LIBXML_NOCDATA);
+  $ns = $data->getNamespaces(true);
+  $data_arr = $data;
+  $slims = $data_arr->children($ns["slims"]);
+  #var_dump($slims->resultInfo);die();
+  $total = $slims->resultInfo->modsResultNum;
+  $offset = $slims->resultInfo->modsResultPage;
+  $number2show = $slims->resultInfo->modsResultShowed;
+
+  #$slimsimage = $data_arr->mods->children($ns["slims"]);
+  #  if (empty($slims->image)) {
+  #    $res .= '<img src="'.$base_url.'images/default/image.png" />';
+  #  } else {
+  #    #$res .= $slims->image;
+  #    $res .= '<img src="'.$base_url.'lib/phpthumb/phpThumb.php?src=../../images/docs/'.$slims->image.'&w=100" />';
+  #  }
+  $res .= 'Total ditemukan: '.$total;
+  $res .= '<table class="table">';
+  foreach ($data_arr->mods as $k_01 => $v_01) {
+    $res .= '<tr>';
+    $res .= '<td>';
+    $slimsimage = $data_arr->mods->children($ns["slims"]);
+    #if (empty($slimsimage->image)) {
+    #  $res .= '<img src="'.$base_url.'images/default/image.png" />';
+    #} else {
+    #  $res .= '<img src="'.$base_url.'lib/phpthumb/phpThumb.php?src=../../images/docs/'.$slimsimage->image.'&w=50" />';
+    #}
+    if (!empty($v_01->children('slims', TRUE)->image)) {
+      $res .= '<img src="'.$base_url.'lib/phpthumb/phpThumb.php?src=../../images/docs/'.$v_01->children('slims', TRUE)->image.'&w=50" alt="" />';
+    } else {
+      $res .= '<img width="50" src="'.$base_url.'template/default/img/nobook.png'.'" alt="" />';
+    }
+    #$res .= $slimsimage->image;
+    $res .= '</td>';
+
+
+    $res .= '<td><a href="?q=slims/detail/'.$v_01->attributes()->ID.'" style="font-weight: bold; line-height: 2px;">'.$v_01->titleInfo->title.'</a><br />'.$v_01->name->namePart.'</td>';
+    $res .= '</tr>';
+  }
+  $res .= '</table>';
+
+  include_once 'lib/PHP-Pagination/Pagination.class.php';
+
+  $pagination = (new Pagination());
+  $pagination->setCurrent($offset);
+  $pagination->setTotal($total);
+
+  // grab rendered/parsed pagination markup
+  $res .= $pagination->parse();
+
+  $res .= '    </div>';
+  ##################### END SIMPLE SEARCH ########################
+
+  $res .= '    <div data-tabs-pane class="tabs-pane" id="tabb">';
+  $res .= '        <p>For advanced search and other features of library catalog, go to <a href="'.$base_url.'" target="_blank">our collection database</a>.</p>';
+  $res .= '    </div>';
+  #$res .= '    <div data-tabs-pane class="tabs-pane" id="tabc">';
+  #$res .= '        <p><strong>Seasons</strong></p>';
+  #$res .= '        <p>Winter, summer, spring or fall?</p>';
+  #$res .= '    </div>';
+  $res .= '</div>';
+
+
+  return $res;
+}
+
+/**
+ * Page callback: SLiMS Powerpack settings
+ *
+ * @see slims_powerpack_menu()
+ */
+function slims_powerpack_form($form, &$form_state) {
+  $form['current_collection_max'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Maximum number of showed collection in Block'),
+    '#default_value' => variable_get('current_collection_max', 3),
+    '#size' => 2,
+    '#maxlength' => 2,
+    '#description' => t('Maximum number of showed collection in Block.'),
+    '#required' => TRUE,
+  );
+  $form['slims_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL'),
+    '#default_value' => variable_get('slims_url', 'http://localhost/pusjatan/slims7_cendana/'),
+    '#size' => 50,
+    '#maxlength' => 250,
+    '#description' => t('URL of remote SLiMS. Must be at least SLiMS 7 (Akasia) or can make XML output.'),
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+function getLastUpdateCollection() {
+  $base_url = variable_get('slims_url');
+  $current_collection_max = variable_get('current_collection_max');
+  $xml_url = $base_url.'index.php?resultXML=true&search=search&keywords=';
+  $d_arr = simplexml_load_file($xml_url);
+  #var_dump($d_arr);
+  $i = 0;
+
+  #$output = t('Hmmmm, sekali lagi sudah kuduga.');
+  #$output .= '<ol>';
+  #$output .= '<li>';
+  #$output .= $base_url;
+  #$output .= '</li>';
+  #$output .= '<li>';
+  #$output .= $current_collection_max;
+  #$output .= '</li>';
+ # $output .= '<li>';
+ # $output .= $xml_url;
+  #$output .= '</li>';
+  #$output .= '</ol>';
+  #$output[] = array(
+  #  'data' => l('satu', 'urlsatu'),
+  #);
+  $output = NULL;
+  foreach ($d_arr->mods as $k_01 => $v_01) {
+    if ($i < $current_collection_max) {
+      $output .= '<li>';
+      $output .= '<a href="?q=slims/detail/'.$v_01->attributes()->ID.'">'.$v_01->titleInfo->title.'</a>';
+      $output .= '</li>';
+    }
+    $i++;
+  }
+
+ 
+  return $output;
+}

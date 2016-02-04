@@ -1,0 +1,6 @@
+name = SLiMS PowerPack
+description = Any add-on support for SLiMS implementation
+core = 7.x
+package = SLiMS
+files[] = slims_powerpack.module
+files[] = slims_powerpack.test

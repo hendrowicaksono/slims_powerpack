@@ -1,0 +1,136 @@
+<?php
+if (isset($_GET['slims'])) {
+  $sarg = explode('/', $_GET['slims']);
+}
+
+require_once 'slims_powerpack.ext_functions.module';
+
+/**
+ * Implements hook_block_info().
+ */
+function slims_powerpack_block_info() {
+  $blocks['last_update_collection'] = array(
+    'info' => t('Last Update Collection'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  $blocks['slims_search_form'] = array(
+    'info' => t('SLiMS Search Form'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function slims_powerpack_block_view($delta = '') {
+  $result = array ();
+
+  switch ($delta) {
+
+    case 'last_update_collection':
+      if (user_access('access content')) {
+        $block['subject'] = t('Koleksi Terbaru');
+        $result = get_last_update_collection ();
+        $sc = '5'; #SC = showed collection
+        $sc = variable_get('current_collection_max', 5);
+        $counter = '0';
+        if (!empty($result)) {
+          foreach ($result as $k_art => $v_art) {
+            if ($counter < $sc) {
+              $items[] = array(
+                'data' => l($v_art['title'], $v_art['url']),
+              );
+              $counter++;
+            }
+          }
+          $block['content'] = theme('item_list', array('items' => $items));
+        } else {
+          $block['content'] = t('Belum ada informasi koleksi terbaru.');
+        }
+        return $block;
+      }
+      break;
+
+    case 'slims_search_form':
+      if (user_access('access content')) {
+        $block['subject'] = t('SLiMS Search Form');
+        $result = get_search_form ();
+        /**
+        $sc = '5'; #SC = showed collection
+        $sc = variable_get('current_collection_max', 5);
+        $counter = '0';
+        if (!empty($result)) {
+          foreach ($result as $k_art => $v_art) {
+            if ($counter < $sc) {
+              $items[] = array(
+                'data' => l($v_art['title'], $v_art['url']),
+              );
+              $counter++;
+            }
+          }
+          $block['content'] = theme('item_list', array('items' => $items));
+        } else {
+          $block['content'] = t('Belum ada informasi koleksi terbaru.');
+        }
+        return $block;
+      }
+      **/
+      break;
+
+  }
+
+}
+  }
+
+/**
+ * Implements hook_menu().
+ */
+function slims_powerpack_menu() {
+  $items = array();
+  $items['admin/config/content/slims_powerpack'] = array(
+    'title' => 'SLiMS Powerpack Admin Menu',
+    'description' => 'Main Configuration for SLiMS Powerpack',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('slims_powerpack_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['slims/detail'] = array(
+    'title' => 'SLiMS Record Detail',
+    'description' => 'SLiMS Record Detail',
+    'page callback' => 'slims_show_record',
+    'access callback' => TRUE,
+    #'page arguments' => array('slims_powerpack_form'),
+    #'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Page callback: SLiMS Powerpack settings
+ *
+ * @see slims_powerpack_menu()
+ */
+function slims_powerpack_form($form, &$form_state) {
+  $form['current_collection_max'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Maximum number of showed collection in Block'),
+    '#default_value' => variable_get('current_collection_max', 3),
+    '#size' => 2,
+    '#maxlength' => 2,
+    '#description' => t('Maximum number of showed collection in Block.'),
+    '#required' => TRUE,
+  );
+  $form['slims_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL'),
+    '#default_value' => variable_get('slims_url', 'http://localhost/demosetneg/kemdikbud/'),
+    '#size' => 50,
+    '#maxlength' => 250,
+    '#description' => t('URL of remote SLiMS. Must be at least SLiMS 7 (Akasia) or can make XML output.'),
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
